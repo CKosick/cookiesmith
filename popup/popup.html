@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CookieSmith</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body class="theme-dark">
+  <div id="app" class="app-container">
+    <!-- Top Header -->
+    <header class="header">
+      <div class="brand">
+        <img src="../icons/icon-48.png" alt="CookieSmith" class="brand-icon">
+        <div class="brand-text">
+          <span class="brand-name">CookieSmith</span>
+          <span class="brand-tag">100% Local</span>
+        </div>
+      </div>
+      <div class="header-site-pill" id="sitePill" title="Active Tab Domain">
+        <svg class="icon site-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zM4.07 10a5.96 5.96 0 00.32 1.9h2.3a13.3 13.3 0 010-3.8H4.39A5.96 5.96 0 004.07 10zm1.08 3.7a5.98 5.98 0 003.05 2.13 11.4 11.4 0 01-1.63-2.13H5.15zm0-7.4h1.35c.44-.8 1-1.52 1.63-2.13A5.98 5.98 0 005.15 6.3zM10 4.07c.83.82 1.48 1.94 1.87 3.23H8.13c.39-1.29 1.04-2.41 1.87-3.23zm-2.03 5.03a11.5 11.5 0 010 1.8h4.06a11.5 11.5 0 010-1.8H7.97zm2.03 6.83c-.83-.82-1.48-1.94-1.87-3.23h3.74c-.39 1.29-1.04 2.41-1.87 3.23zm3.5-3.13h1.35a5.98 5.98 0 00-3.05 2.13c.63-.61 1.2-1.33 1.63-2.13zm1.43-1.9h-2.3a13.3 13.3 0 000-3.8h2.3a5.96 5.96 0 010 3.8zm-1.43-5.7c-.43-.8-1-1.52-1.63-2.13a5.98 5.98 0 013.05 2.13h-1.42z" clip-rule="evenodd" />
+        </svg>
+        <span id="activeDomain" class="site-domain">Loading...</span>
+        <span id="badgeCount" class="cookie-counter">0</span>
+      </div>
+      <div class="header-actions">
+        <button id="btnRefresh" class="icon-btn" title="Refresh Cookies" aria-label="Refresh">
+          <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Restricted / Error State Notice -->
+    <div id="restrictedNotice" class="restricted-notice hidden">
+      <div class="restricted-icon">⚠️</div>
+      <div class="restricted-content">
+        <div class="restricted-title">Browser Protected Page</div>
+        <div id="restrictedReason" class="restricted-desc">Cookies cannot be inspected on internal browser URLs.</div>
+      </div>
+    </div>
+
+    <!-- Main Toolbar -->
+    <div id="mainContent" class="main-body">
+      <div class="toolbar">
+        <div class="search-box">
+          <svg class="icon search-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+          </svg>
+          <input type="text" id="searchInput" placeholder="Filter by name, domain, value..." autocomplete="off" spellcheck="false">
+          <button id="btnClearSearch" class="btn-clear-search hidden" title="Clear search">✕</button>
+        </div>
+        <div class="action-buttons">
+          <button id="btnOpenAddModal" class="btn btn-primary" title="Add new cookie">
+            <span class="btn-icon">+</span>
+            <span>Add</span>
+          </button>
+          <button id="btnOpenImportModal" class="btn btn-secondary" title="Import cookies from JSON">Import</button>
+          <button id="btnOpenExportModal" class="btn btn-secondary" title="Export cookies as JSON">Export</button>
+          <button id="btnOpenDeleteAllModal" class="btn btn-danger-ghost" title="Clear all cookies for this site">Clear All</button>
+        </div>
+      </div>
+
+      <!-- Scope Toggle & Quick Stats -->
+      <div class="scope-row">
+        <div class="scope-toggle">
+          <label class="toggle-option">
+            <input type="radio" name="scope" id="scopeUrl" value="url" checked>
+            <span>Tab URL</span>
+          </label>
+          <label class="toggle-option">
+            <input type="radio" name="scope" id="scopeDomain" value="domain">
+            <span>Entire Domain</span>
+          </label>
+        </div>
+        <div class="sort-selector">
+          <label for="sortSelect">Sort:</label>
+          <select id="sortSelect" class="select-sm">
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="expiry-asc">Expiry (Soonest)</option>
+            <option value="expiry-desc">Expiry (Furthest)</option>
+            <option value="size-desc">Size (Largest)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filter Chips -->
+      <div class="filters-row">
+        <button class="chip active" data-filter="all">All <span id="chipCountAll" class="chip-badge">0</span></button>
+        <button class="chip" data-filter="session">Session <span id="chipCountSession" class="chip-badge">0</span></button>
+        <button class="chip" data-filter="persistent">Persistent <span id="chipCountPersistent" class="chip-badge">0</span></button>
+        <button class="chip" data-filter="secure">Secure <span id="chipCountSecure" class="chip-badge">0</span></button>
+        <button class="chip" data-filter="httponly">HttpOnly <span id="chipCountHttpOnly" class="chip-badge">0</span></button>
+        <button class="chip chip-purple" data-filter="thirdparty">3rd Party <span id="chipCountThirdParty" class="chip-badge">0</span></button>
+      </div>
+
+      <!-- Cookie List Container -->
+      <div class="cookie-list-wrapper">
+        <div id="cookieList" class="cookie-list">
+          <!-- Dynamically populated cookie items -->
+        </div>
+
+        <!-- Empty Results Message -->
+        <div id="emptyState" class="empty-state hidden">
+          <div class="empty-icon">🍪</div>
+          <div id="emptyTitle" class="empty-title">No cookies found</div>
+          <div id="emptyDesc" class="empty-desc">This site has not set any cookies for the selected scope.</div>
+          <button id="btnEmptyAdd" class="btn btn-primary btn-sm">+ Forge New Cookie</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- 1. Add / Edit Cookie Modal -->
+    <div id="cookieFormModal" class="modal-backdrop hidden">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 id="formModalTitle" class="modal-title">Forge New Cookie</h3>
+          <button class="modal-close" data-close-modal="cookieFormModal">✕</button>
+        </div>
+        <form id="cookieForm" class="modal-body form-grid">
+          <div class="form-group col-span-2">
+            <label for="formName">Name <span class="required">*</span></label>
+            <input type="text" id="formName" class="form-input mono" placeholder="cookie_name" required spellcheck="false">
+          </div>
+
+          <div class="form-group col-span-2">
+            <label for="formValue">Value</label>
+            <textarea id="formValue" class="form-textarea mono" rows="3" placeholder="Cookie value" spellcheck="false"></textarea>
+            <div class="input-helper">
+              <span id="formValueStats">0 chars (0 bytes)</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="formDomain">Domain</label>
+            <input type="text" id="formDomain" class="form-input" placeholder=".example.com" spellcheck="false">
+          </div>
+
+          <div class="form-group">
+            <label for="formPath">Path</label>
+            <input type="text" id="formPath" class="form-input" value="/" placeholder="/" spellcheck="false">
+          </div>
+
+          <div class="form-group">
+            <label for="formSameSite">SameSite</label>
+            <select id="formSameSite" class="form-select">
+              <option value="lax">Lax (Default)</option>
+              <option value="strict">Strict</option>
+              <option value="no_restriction">None (no_restriction)</option>
+              <option value="unspecified">Unspecified</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="formSessionToggle">Expiration</label>
+            <div class="toggle-control">
+              <label class="checkbox-label">
+                <input type="checkbox" id="formSessionToggle" checked>
+                <span>Session Cookie</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="formExpiryWrapper" class="form-group col-span-2 hidden">
+            <label for="formExpiryDate">Expiry Date & Time</label>
+            <input type="datetime-local" id="formExpiryDate" class="form-input">
+          </div>
+
+          <div class="form-group col-span-2 flags-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="formSecure">
+              <span>Secure (HTTPS only)</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="formHttpOnly">
+              <span>HttpOnly (Inaccessible to JS)</span>
+            </label>
+            <label class="checkbox-label" title="Host-only cookies do not include a domain attribute">
+              <input type="checkbox" id="formHostOnly">
+              <span>HostOnly</span>
+            </label>
+          </div>
+
+          <div class="modal-footer col-span-2">
+            <button type="button" class="btn btn-secondary" data-close-modal="cookieFormModal">Cancel</button>
+            <button type="submit" id="btnSaveCookie" class="btn btn-primary">Save Cookie</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2. Import Modal -->
+    <div id="importModal" class="modal-backdrop hidden">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title">Import Cookies</h3>
+          <button class="modal-close" data-close-modal="importModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-hint">Paste JSON array of cookies or select a JSON file exported from CookieSmith / EditThisCookie.</p>
+          <div class="file-upload-row">
+            <label class="btn btn-secondary file-upload-btn">
+              <span>Choose JSON File</span>
+              <input type="file" id="importFileInput" accept=".json,application/json" class="hidden-file-input">
+            </label>
+            <span id="importFileStatus" class="file-status">No file chosen</span>
+          </div>
+          <div class="form-group">
+            <textarea id="importJsonTextarea" class="form-textarea mono" rows="8" placeholder='[{"name":"token","value":"xyz","domain":".example.com","path":"/","secure":true}]' spellcheck="false"></textarea>
+          </div>
+          <div id="importSummary" class="import-summary hidden">
+            <span id="importSummaryText">Ready to import</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-close-modal="importModal">Cancel</button>
+          <button id="btnConfirmImport" class="btn btn-primary">Import Cookies</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Export Modal -->
+    <div id="exportModal" class="modal-backdrop hidden">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title">Export Cookies</h3>
+          <button class="modal-close" data-close-modal="exportModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="export-stats-row">
+            <span id="exportCountBadge" class="badge">0 Cookies</span>
+            <span class="export-hint">Standard JSON format compatible with EditThisCookie & CookieSmith</span>
+          </div>
+          <div class="form-group">
+            <textarea id="exportJsonTextarea" class="form-textarea mono" rows="9" readonly spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btnCopyExport" class="btn btn-secondary">
+            <span class="btn-icon">📋</span>
+            <span>Copy JSON</span>
+          </button>
+          <button id="btnDownloadExport" class="btn btn-primary">
+            <span class="btn-icon">⬇</span>
+            <span>Download .json</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Delete All Confirmation Modal -->
+    <div id="deleteAllModal" class="modal-backdrop hidden">
+      <div class="modal-dialog modal-sm">
+        <div class="modal-header danger-header">
+          <h3 class="modal-title">Clear Site Cookies?</h3>
+          <button class="modal-close" data-close-modal="deleteAllModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-warning-text">
+            Are you sure you want to delete all <strong id="deleteAllCount">0</strong> cookies for <strong id="deleteAllDomain">this site</strong>?
+          </p>
+          <p class="modal-warning-sub">This action will immediately log you out or reset site preferences.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-close-modal="deleteAllModal">Cancel</button>
+          <button id="btnConfirmDeleteAll" class="btn btn-danger">Yes, Delete All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Toast Notification -->
+    <div id="toast" class="toast hidden">
+      <span id="toastIcon" class="toast-icon">✓</span>
+      <span id="toastMessage" class="toast-message">Action succeeded</span>
+    </div>
+
+    <!-- Footer Trust Pill -->
+    <footer class="footer">
+      <div class="footer-left">
+        <span class="trust-shield">🛡️</span>
+        <span>Zero telemetry • Local only</span>
+      </div>
+      <div class="footer-right">
+        <a href="../privacy.html" target="_blank" class="footer-link">Privacy Policy</a>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

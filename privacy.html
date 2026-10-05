@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - CookieSmith</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0b0f19;
+      color: #f8fafc;
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #111827;
+      border: 1px solid #243046;
+      border-radius: 12px;
+      padding: 36px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #243046;
+      padding-bottom: 20px;
+    }
+    .brand-row img {
+      width: 42px;
+      height: 42px;
+    }
+    h1 {
+      color: #f59e0b;
+      margin: 0;
+      font-size: 24px;
+    }
+    .date {
+      color: #64748b;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .highlight-box {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 4px solid #f59e0b;
+      padding: 16px 20px;
+      border-radius: 6px;
+      margin-bottom: 28px;
+    }
+    .highlight-box strong {
+      color: #f59e0b;
+    }
+    h2 {
+      color: #f8fafc;
+      font-size: 18px;
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+    p, li {
+      color: #94a3b8;
+      font-size: 14.5px;
+    }
+    ul {
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    th, td {
+      border: 1px solid #243046;
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 13.5px;
+    }
+    th {
+      background: #141d2e;
+      color: #f59e0b;
+    }
+    td {
+      color: #94a3b8;
+    }
+    code {
+      background: #090d16;
+      color: #38bdf8;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+    }
+    a {
+      color: #f59e0b;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brand-row">
+      <img src="icons/icon-48.png" alt="CookieSmith">
+      <div>
+        <h1>CookieSmith Privacy Policy</h1>
+        <div class="date">Last Updated: October 5, 2026</div>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <strong>Zero Telemetry • 100% Local • Open Source</strong><br>
+      CookieSmith collects zero user data, logs zero analytics, and makes zero network requests. All cookie inspections, additions, edits, deletions, imports, and exports occur entirely on your local machine.
+    </div>
+
+    <h2>1. Data Collection: None</h2>
+    <p>CookieSmith does not collect, record, or transmit:</p>
+    <ul>
+      <li>Cookie names, values, or attributes</li>
+      <li>Browsing history or URLs visited</li>
+      <li>IP addresses or device identifiers</li>
+      <li>Usage analytics or crash telemetry</li>
+      <li>Personal or sensitive user information</li>
+    </ul>
+
+    <h2>2. Permissions Justification</h2>
+    <p>CookieSmith requests the minimum permissions required by Chrome to fulfill user actions:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Permission</th>
+          <th>Type</th>
+          <th>Exact Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>cookies</code></td>
+          <td>API</td>
+          <td>Allows reading, adding, modifying, and deleting cookies when you open the popup. Data never leaves your machine.</td>
+        </tr>
+        <tr>
+          <td><code>activeTab</code></td>
+          <td>API</td>
+          <td>Allows reading the active tab's domain to filter cookies specific to the site you are currently visiting.</td>
+        </tr>
+        <tr>
+          <td><code>storage</code></td>
+          <td>API</td>
+          <td>Allows storing non-sensitive local UI preferences (like sort order) within your browser's local storage.</td>
+        </tr>
+        <tr>
+          <td><code>&lt;all_urls&gt;</code></td>
+          <td>Host</td>
+          <td>Required by Chrome for the <code>chrome.cookies</code> API to inspect cookies on whichever site you choose to open the tool on.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. Third-Party Services</h2>
+    <p>CookieSmith connects to zero external services. It contains no tracking SDKs, no advertising code, and no external font/asset CDNs.</p>
+
+    <h2>4. Independent Verification & Auditing</h2>
+    <p>CookieSmith is 100% open source. You can inspect the source code, verify that no outbound network requests occur in Chrome DevTools Network panel, and build the extension directly from source.</p>
+
+    <h2>5. Contact</h2>
+    <p>For questions or verification inquiries, please visit our open source repository at <a href="https://github.com/CKosick/cookiesmith" target="_blank">github.com/CKosick/cookiesmith</a> or contact <a href="mailto:cliff@cookiesmith.dev">cliff@cookiesmith.dev</a>.</p>
+  </div>
+</body>
+</html>

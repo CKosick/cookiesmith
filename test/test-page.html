@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CookieSmith Test Bed</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 30px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 { color: #f59e0b; margin-bottom: 8px; }
+    p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #f59e0b;
+      color: #0f172a;
+      border: none;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    button:hover { background: #d97706; }
+    .btn-secondary {
+      background: #334155;
+      color: #fff;
+    }
+    .btn-secondary:hover { background: #475569; }
+    pre {
+      background: #090d16;
+      border: 1px solid #243046;
+      border-radius: 6px;
+      padding: 12px;
+      color: #38bdf8;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <h1>CookieSmith Test Bed Site</h1>
+  <p>Use this page to verify CookieSmith MVP features: inspecting, adding, editing, deleting, importing, exporting, and search filtering.</p>
+
+  <div class="card">
+    <h3>Cookie Controls</h3>
+    <p>Generate sample cookies in this browser context:</p>
+    <button id="btnSetSamples">Set Sample Cookies (5 cookies)</button>
+    <button id="btnSetHeavy">Set Heavy Batch (25 cookies)</button>
+    <button id="btnClearJs" class="btn-secondary">Clear Non-HttpOnly via JS</button>
+    <button id="btnRefreshDisplay" class="btn-secondary">Refresh Display</button>
+  </div>
+
+  <div class="card">
+    <h3>Live document.cookie on this page:</h3>
+    <pre id="cookieDisplay">Loading...</pre>
+  </div>
+
+  <script>
+    function refreshDisplay() {
+      const display = document.getElementById('cookieDisplay');
+      display.textContent = document.cookie || '(No cookies found in document.cookie)';
+    }
+
+    document.getElementById('btnSetSamples').addEventListener('click', () => {
+      document.cookie = "user_session=abc123456xyz; path=/; max-age=86400; SameSite=Lax";
+      document.cookie = "theme_preference=dark; path=/; max-age=604800";
+      document.cookie = "analytics_opt_out=true; path=/; max-age=31536000";
+      document.cookie = "temp_cart_id=cart_987654; path=/"; // Session cookie
+      document.cookie = "experiment_variant=v2_treatment; path=/; max-age=172800";
+      refreshDisplay();
+    });
+
+    document.getElementById('btnSetHeavy').addEventListener('click', () => {
+      for (let i = 1; i <= 25; i++) {
+        document.cookie = `heavy_cookie_${i}=token_val_${i * 1000}_test; path=/; max-age=${i * 3600}; SameSite=Lax`;
+      }
+      refreshDisplay();
+    });
+
+    document.getElementById('btnClearJs').addEventListener('click', () => {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+      }
+      refreshDisplay();
+    });
+
+    document.getElementById('btnRefreshDisplay').addEventListener('click', refreshDisplay);
+
+    // Initial display
+    refreshDisplay();
+  </script>
+</body>
+</html>
