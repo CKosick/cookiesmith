@@ -120,13 +120,28 @@ function showToast(message, isError = false) {
   }, 2500);
 }
 
-// Modal open/close helpers
+// Modal open/close helpers with focus management and trapping
+let lastFocusedElement = null;
+
 function openModal(modalEl) {
+  lastFocusedElement = document.activeElement;
   modalEl.classList.remove('hidden');
+  modalEl.setAttribute('role', 'dialog');
+  modalEl.setAttribute('aria-modal', 'true');
+
+  // Focus the first focusable input or button
+  const focusable = modalEl.querySelectorAll('input:not([type="hidden"]), textarea, select, button:not([data-close-modal])');
+  if (focusable.length > 0) {
+    setTimeout(() => focusable[0].focus(), 50);
+  }
 }
 
 function closeModal(modalEl) {
   modalEl.classList.add('hidden');
+  modalEl.removeAttribute('aria-modal');
+  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+    lastFocusedElement.focus();
+  }
 }
 
 // Initialize Application
@@ -209,8 +224,15 @@ function applyFilterAndRender() {
   renderCookieList();
 }
 
-// Render the list of cookies
+// Render the list of cookies with DocumentFragment batching
+let renderAnimationId = null;
+
 function renderCookieList() {
+  if (renderAnimationId) {
+    cancelAnimationFrame(renderAnimationId);
+    renderAnimationId = null;
+  }
+
   elements.cookieList.innerHTML = '';
 
   if (state.filteredCookies.length === 0) {
@@ -239,16 +261,46 @@ function renderCookieList() {
   elements.emptyState.classList.add('hidden');
   elements.cookieList.classList.remove('hidden');
 
-  for (const cookie of state.filteredCookies) {
-    const card = createCookieCard(cookie);
-    elements.cookieList.appendChild(card);
+  // Optimization: render in chunks via DocumentFragment to prevent layout thrashing
+  const total = state.filteredCookies.length;
+  const FIRST_BATCH = 40;
+
+  const fragment = document.createDocumentFragment();
+  const initialBatch = state.filteredCookies.slice(0, FIRST_BATCH);
+
+  for (const cookie of initialBatch) {
+    fragment.appendChild(createCookieCard(cookie));
+  }
+  elements.cookieList.appendChild(fragment);
+
+  // If list is large, render remainder asynchronously on next frame
+  if (total > FIRST_BATCH) {
+    let offset = FIRST_BATCH;
+    const CHUNK_SIZE = 50;
+
+    function renderNextChunk() {
+      if (offset >= total) return;
+      const chunkFragment = document.createDocumentFragment();
+      const end = Math.min(offset + CHUNK_SIZE, total);
+      for (let i = offset; i < end; i++) {
+        chunkFragment.appendChild(createCookieCard(state.filteredCookies[i]));
+      }
+      elements.cookieList.appendChild(chunkFragment);
+      offset = end;
+      if (offset < total) {
+        renderAnimationId = requestAnimationFrame(renderNextChunk);
+      }
+    }
+
+    renderAnimationId = requestAnimationFrame(renderNextChunk);
   }
 }
 
-// Generate DOM element for a cookie card
+// Generate DOM element for a cookie card with accessibility & lazy editor
 function createCookieCard(cookie) {
   const card = document.createElement('div');
   card.className = 'cookie-card';
+  card.setAttribute('role', 'listitem');
   const cookieKey = `${cookie.name}@@${cookie.domain}@@${cookie.path}`;
   const isExpanded = state.expandedCookieKeys.has(cookieKey);
   if (isExpanded) card.classList.add('expanded');
@@ -277,7 +329,7 @@ function createCookieCard(cookie) {
   }
 
   card.innerHTML = `
-    <div class="card-header">
+    <div class="card-header" tabindex="0" role="button" aria-expanded="${isExpanded}" aria-label="Cookie ${escapeHtml(cookie.name)}">
       <div class="card-top-row">
         <div class="card-title-group">
           <svg class="card-chevron" viewBox="0 0 20 20" fill="currentColor">
@@ -287,13 +339,13 @@ function createCookieCard(cookie) {
           <span class="cookie-domain-sub">${escapeHtml(cookie.domain || '')}</span>
         </div>
         <div class="card-quick-actions">
-          <button class="btn-mini btn-copy-val" title="Copy Cookie Value">
+          <button class="btn-mini btn-copy-val" title="Copy Cookie Value" aria-label="Copy Cookie Value">
             <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
               <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
               <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 2H9a3 3 0 01-3-2z" />
             </svg>
           </button>
-          <button class="btn-mini btn-mini-danger btn-quick-del" title="Delete Cookie">
+          <button class="btn-mini btn-mini-danger btn-quick-del" title="Delete Cookie" aria-label="Delete Cookie">
             <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
             </svg>
@@ -330,17 +382,27 @@ function createCookieCard(cookie) {
     }
   });
 
-  header.addEventListener('click', () => {
+  function toggleCardExpansion() {
     const editor = card.querySelector('.card-editor');
     if (state.expandedCookieKeys.has(cookieKey)) {
       state.expandedCookieKeys.delete(cookieKey);
       card.classList.remove('expanded');
+      header.setAttribute('aria-expanded', 'false');
       editor.classList.add('hidden');
     } else {
       state.expandedCookieKeys.add(cookieKey);
       card.classList.add('expanded');
+      header.setAttribute('aria-expanded', 'true');
       renderCardEditor(editor, cookie);
       editor.classList.remove('hidden');
+    }
+  }
+
+  header.addEventListener('click', toggleCardExpansion);
+  header.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleCardExpansion();
     }
   });
 
@@ -609,7 +671,8 @@ function attachEventListeners() {
     showToast('Refreshed cookies');
   });
 
-  // Search input & clear button
+  // Search input & clear button with micro-debounce
+  let searchDebounceTimer = null;
   elements.searchInput.addEventListener('input', () => {
     state.searchQuery = elements.searchInput.value;
     if (state.searchQuery) {
@@ -617,10 +680,15 @@ function attachEventListeners() {
     } else {
       elements.btnClearSearch.classList.add('hidden');
     }
-    applyFilterAndRender();
+
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      applyFilterAndRender();
+    }, 60);
   });
 
   elements.btnClearSearch.addEventListener('click', () => {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
     elements.searchInput.value = '';
     state.searchQuery = '';
     elements.btnClearSearch.classList.add('hidden');

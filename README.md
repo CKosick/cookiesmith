@@ -81,11 +81,30 @@ Per the development work order, CookieSmith MVP has zero monetization, no licens
 5. Select the `cookiesmith` project folder.
 6. The CookieSmith anvil icon will appear in your Chrome toolbar. Pin it for quick access!
 
-### Run Automated Unit Tests
+### Run Comprehensive Automated Test Suites
 
 ```bash
-node test/test-cookie-manager.mjs
+# Run all test suites (Unit, Security Audit, Import/Export Stress)
+node test/run-all-tests.mjs
 ```
+
+Or run individual suites:
+```bash
+# 1. Unit & Edge Case Suite (ccTLD, URL normalization, 500-cookie scale benchmark)
+node test/test-cookie-manager.mjs
+
+# 2. Security & Zero-Telemetry Audit (Static AST scan for zero network calls, zero trackers)
+node test/test-security-audit.mjs
+
+# 3. Import/Export Stress & Compatibility Suite (EditThisCookie compatibility & 100-cookie round trip)
+node test/test-import-export-stress.mjs
+```
+
+### Performance & Accessibility Optimizations
+- **DocumentFragment Batching:** Renders cards in batched DOM operations to eliminate layout thrashing.
+- **Micro-Debounced Search:** 60ms non-blocking debounce preserves instant 60fps input typing even on sites with hundreds of cookies.
+- **Lazy Editor Injection:** Cookie edit forms are dynamically constructed only when expanded, minimizing memory footprints.
+- **ARIA & Keyboard Navigation:** Complete `role="listitem"`, `aria-expanded`, keyboard shortcuts (`Enter`/`Space` to expand cards, `Esc` to close), and modal focus trapping.
 
 ### Test Bed Page
 

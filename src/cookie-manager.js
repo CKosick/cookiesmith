@@ -260,11 +260,15 @@ function formatExpiry(date) {
  * Construct valid URL for chrome.cookies operations based on cookie attributes
  */
 export function buildCookieUrl(cookie, fallbackTabUrl) {
+  let cleanPath = cookie.path ? String(cookie.path).trim() : '/';
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = '/' + cleanPath;
+  }
+
   if (fallbackTabUrl && (!cookie.domain || fallbackTabUrl.includes(cookie.domain.replace(/^\./, '')))) {
     try {
       const tabUrlObj = new URL(fallbackTabUrl);
       const scheme = cookie.secure ? 'https:' : (tabUrlObj.protocol || 'https:');
-      const cleanPath = cookie.path && cookie.path.startsWith('/') ? cookie.path : '/';
       const cleanDomain = (cookie.domain || tabUrlObj.hostname).replace(/^\./, '');
       return `${scheme}//${cleanDomain}${cleanPath}`;
     } catch {
@@ -274,7 +278,6 @@ export function buildCookieUrl(cookie, fallbackTabUrl) {
 
   const scheme = cookie.secure ? 'https:' : 'http:';
   const cleanDomain = (cookie.domain || 'localhost').replace(/^\./, '');
-  const cleanPath = cookie.path && cookie.path.startsWith('/') ? cookie.path : '/';
   return `${scheme}//${cleanDomain}${cleanPath}`;
 }
 
