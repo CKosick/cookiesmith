@@ -141,20 +141,33 @@ function showToast(message, isError = false) {
 // already declared in the manifest.
 const GUIDE_DISMISSED_KEY = 'cookiesmith_guide_dismissed';
 let guideDismissedCache = null;
+let guideDismissedRead = null;
 
-async function isGuideDismissed() {
-  if (guideDismissedCache !== null) return guideDismissedCache;
-  guideDismissedCache = false;
-  try {
-    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      const data = await chrome.storage.local.get(GUIDE_DISMISSED_KEY);
-      guideDismissedCache = Boolean(data && data[GUIDE_DISMISSED_KEY]);
-    }
-  } catch {
-    // Storage unavailable (e.g. standalone preview): treat as not dismissed
-    // for this session only.
+// The initial storage read is memoized as a single promise and never
+// overwrites a dismissal that landed while the read was in flight:
+// dismissGuideStrip sets the cache to true synchronously, and the read
+// only fills the cache when no dismissal beat it to it.
+function isGuideDismissed() {
+  if (guideDismissedCache !== null) return Promise.resolve(guideDismissedCache);
+  if (!guideDismissedRead) {
+    guideDismissedRead = (async () => {
+      let dismissed = false;
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          const data = await chrome.storage.local.get(GUIDE_DISMISSED_KEY);
+          dismissed = Boolean(data && data[GUIDE_DISMISSED_KEY]);
+        }
+      } catch {
+        // Storage unavailable (e.g. standalone preview): treat as not dismissed
+        // for this session only.
+      }
+      if (guideDismissedCache !== true) {
+        guideDismissedCache = dismissed;
+      }
+      return guideDismissedCache;
+    })();
   }
-  return guideDismissedCache;
+  return guideDismissedRead;
 }
 
 async function refreshGuideStrip() {

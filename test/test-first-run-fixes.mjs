@@ -89,6 +89,9 @@ assert(popupJs.includes('chrome.storage.local'), 'Guide dismissal persists via c
 const dismissCallSites = (popupJs.match(/dismissGuideStrip\(\)/g) || []).length;
 assert(dismissCallSites >= 6, `dismissGuideStrip is wired to the definition plus manual dismiss and all core actions (${dismissCallSites} occurrences)`);
 assert(popupJs.includes('refreshGuideStrip'), 'Popup checks the persisted dismissal state on open');
+assert(!popupJs.includes('guideDismissedCache = false'), 'Dismissal race: the initial read no longer pre-seeds the cache to false');
+assert(popupJs.includes('guideDismissedRead'), 'Dismissal race: the initial storage read is memoized as one promise');
+assert(popupJs.includes('guideDismissedCache !== true'), 'Dismissal race: a dismissal landing during the read wins over the read result');
 
 // -------------------------------------------------------------------
 // Suite 3: Fix 3 - empty Tab URL scope
