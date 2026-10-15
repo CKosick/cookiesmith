@@ -1067,6 +1067,29 @@ body {
   font-weight: 700;
 }
 
+.toast-actionable {
+  pointer-events: auto;
+}
+
+.toast-action-btn {
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 2px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: all 0.15s ease;
+}
+
+.toast-action-btn:hover {
+  background-color: var(--primary);
+  color: #0f172a;
+}
+
 @keyframes toastFadeIn {
   from {
     opacity: 0;

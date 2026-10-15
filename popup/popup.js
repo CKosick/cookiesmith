@@ -107,13 +107,22 @@ const elements = {
 
   toast: document.getElementById('toast'),
   toastIcon: document.getElementById('toastIcon'),
-  toastMessage: document.getElementById('toastMessage')
+  toastMessage: document.getElementById('toastMessage'),
+  toastActionBtn: document.getElementById('toastActionBtn')
 };
 
 // Toast notification helper
 let toastTimeout = null;
+// Full contents of the most recently deleted cookie, kept in popup memory
+// only so the delete toast can offer Undo. Module state dies with the
+// popup, so closing and reopening the popup clears the offer.
+let lastDeletedCookie = null;
 function showToast(message, isError = false) {
   if (toastTimeout) clearTimeout(toastTimeout);
+  // A plain toast replaces any pending delete Undo offer.
+  lastDeletedCookie = null;
+  elements.toastActionBtn.classList.add('hidden');
+  elements.toast.classList.remove('toast-actionable');
   elements.toastMessage.textContent = message;
   elements.toastIcon.textContent = isError ? '✕' : '✓';
   elements.toastIcon.style.color = isError ? '#ef4444' : '#f59e0b';
@@ -170,6 +179,76 @@ async function dismissGuideStrip() {
   } catch {
     // Non-fatal: the strip stays hidden for this popup session.
   }
+}
+
+// Undo support for single-cookie deletes.
+// The toast stays up for UNDO_TOAST_DURATION_MS with an Undo button that
+// re-creates the cookie exactly as it was.
+const UNDO_TOAST_DURATION_MS = 10000;
+
+function snapshotCookieForUndo(cookie) {
+  return {
+    name: cookie.name,
+    value: cookie.value != null ? cookie.value : '',
+    domain: cookie.domain || '',
+    path: cookie.path || '/',
+    secure: Boolean(cookie.secure),
+    httpOnly: Boolean(cookie.httpOnly),
+    sameSite: cookie.sameSite || 'unspecified',
+    hostOnly: Boolean(cookie.hostOnly),
+    isSession: Boolean(cookie.isSession ?? !cookie.expirationDate),
+    expirationDate: cookie.expirationDate,
+    storeId: cookie.storeId
+  };
+}
+
+function hideToast() {
+  if (toastTimeout) {
+    clearTimeout(toastTimeout);
+    toastTimeout = null;
+  }
+  elements.toast.classList.add('hidden');
+  elements.toast.classList.remove('toast-actionable');
+  elements.toastActionBtn.classList.add('hidden');
+}
+
+function showDeleteUndoToast(cookie) {
+  if (toastTimeout) clearTimeout(toastTimeout);
+  elements.toastMessage.textContent = `Deleted cookie "${cookie.name}" from ${cookie.domain || 'this site'}`;
+  elements.toastIcon.textContent = '✓';
+  elements.toastIcon.style.color = '#f59e0b';
+  elements.toastActionBtn.textContent = 'Undo';
+  elements.toastActionBtn.classList.remove('hidden');
+  elements.toast.classList.add('toast-actionable');
+  elements.toast.classList.remove('hidden');
+
+  toastTimeout = setTimeout(() => {
+    hideToast();
+  }, UNDO_TOAST_DURATION_MS);
+}
+
+// Delete a single cookie and offer Undo on the toast.
+async function deleteCookieWithUndo(cookie) {
+  const snapshot = snapshotCookieForUndo(cookie);
+  await deleteCookie(cookie, state.tabInfo.url);
+  lastDeletedCookie = snapshot;
+  await dismissGuideStrip();
+  showDeleteUndoToast(snapshot);
+  await reloadCookies();
+}
+
+// Restore the most recently deleted cookie exactly as it was.
+async function undoLastDelete() {
+  const snapshot = lastDeletedCookie;
+  if (!snapshot) {
+    hideToast();
+    return;
+  }
+  lastDeletedCookie = null;
+  hideToast();
+  await setCookie({ ...snapshot }, state.tabInfo.url);
+  showToast(`Restored cookie "${snapshot.name}"`);
+  await reloadCookies();
 }
 
 // Modal open/close helpers with focus management and trapping
@@ -456,10 +535,7 @@ function createCookieCard(cookie) {
   btnDel.addEventListener('click', async (e) => {
     e.stopPropagation();
     try {
-      await deleteCookie(cookie, state.tabInfo.url);
-      await dismissGuideStrip();
-      showToast(`Deleted cookie "${cookie.name}"`);
-      await reloadCookies();
+      await deleteCookieWithUndo(cookie);
     } catch (err) {
       showToast(`Delete failed: ${err.message}`, true);
     }
@@ -634,10 +710,7 @@ function renderCardEditor(editorEl, cookie) {
 
   btnDelete.addEventListener('click', async () => {
     try {
-      await deleteCookie(cookie, state.tabInfo.url);
-      await dismissGuideStrip();
-      showToast(`Deleted cookie "${cookie.name}"`);
-      await reloadCookies();
+      await deleteCookieWithUndo(cookie);
     } catch (err) {
       showToast(`Delete failed: ${err.message}`, true);
     }
@@ -763,6 +836,15 @@ function escapeHtml(str) {
 
 // Attach all DOM Event Listeners
 function attachEventListeners() {
+  // Undo button on the delete toast
+  elements.toastActionBtn.addEventListener('click', async () => {
+    try {
+      await undoLastDelete();
+    } catch (err) {
+      showToast(`Undo failed: ${err.message}`, true);
+    }
+  });
+
   // Guide strip manual dismiss
   if (elements.btnDismissGuide) {
     elements.btnDismissGuide.addEventListener('click', async () => {
