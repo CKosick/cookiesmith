@@ -500,6 +500,12 @@ function createCookieCard(cookie) {
           <span class="cookie-domain-sub">${escapeHtml(cookie.domain || '')}</span>
         </div>
         <div class="card-quick-actions">
+          <button class="btn-mini btn-edit" title="Edit Cookie" aria-label="Edit Cookie">
+            <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+            <span class="btn-edit-label">Edit</span>
+          </button>
           <button class="btn-mini btn-copy-val" title="Copy Cookie Value" aria-label="Copy Cookie Value">
             <svg class="icon" viewBox="0 0 20 20" fill="currentColor">
               <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
@@ -523,8 +529,14 @@ function createCookieCard(cookie) {
 
   // Attach event listeners for card header
   const header = card.querySelector('.card-header');
+  const btnEdit = card.querySelector('.btn-edit');
   const btnCopy = card.querySelector('.btn-copy-val');
   const btnDel = card.querySelector('.btn-quick-del');
+
+  btnEdit.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleCardExpansion();
+  });
 
   btnCopy.addEventListener('click', async (e) => {
     e.stopPropagation();
