@@ -87,8 +87,20 @@ assert((html.match(/\.\.\/privacy\.html/g) || []).length >= 2, 'Privacy policy l
 assert(css.includes('.guide-strip'), 'Guide strip styling exists in popup.css');
 assert(popupJs.includes('cookiesmith_guide_dismissed'), 'Guide dismissal uses a persisted storage key');
 assert(popupJs.includes('chrome.storage.local'), 'Guide dismissal persists via chrome.storage.local (no new permissions)');
-const dismissCallSites = (popupJs.match(/dismissGuideStrip\(\)/g) || []).length;
-assert(dismissCallSites >= 6, `dismissGuideStrip is wired to the definition plus manual dismiss and all core actions (${dismissCallSites} occurrences)`);
+// Each of the six dismissal call sites is asserted individually, inside
+// its own handler, so removing any one of them fails this suite. (The
+// previous count-based check also matched the function definition, so a
+// lost call site still passed.)
+function sliceFrom(marker, length) {
+  const idx = popupJs.indexOf(marker);
+  return idx === -1 ? '' : popupJs.slice(idx, idx + length);
+}
+assert(sliceFrom('async function deleteCookieWithUndo', 500).includes('dismissGuideStrip()'), 'Guide dismisses after a single-cookie delete');
+assert(sliceFrom("form.addEventListener('submit'", 2200).includes('dismissGuideStrip()'), 'Guide dismisses after an inline-editor save');
+assert(sliceFrom("elements.cookieForm.addEventListener('submit'", 2200).includes('dismissGuideStrip()'), 'Guide dismisses after an add-form save');
+assert(sliceFrom("elements.btnConfirmImport.addEventListener('click'", 900).includes('dismissGuideStrip()'), 'Guide dismisses after an import');
+assert(sliceFrom("elements.btnConfirmDeleteAll.addEventListener('click'", 900).includes('dismissGuideStrip()'), 'Guide dismisses after Clear All');
+assert(sliceFrom("elements.btnDismissGuide.addEventListener('click'", 300).includes('dismissGuideStrip()'), 'Guide dismisses from the manual dismiss button');
 assert(popupJs.includes('refreshGuideStrip'), 'Popup checks the persisted dismissal state on open');
 assert(!popupJs.includes('guideDismissedCache = false'), 'Dismissal race: the initial read no longer pre-seeds the cache to false');
 assert(popupJs.includes('guideDismissedRead'), 'Dismissal race: the initial storage read is memoized as one promise');
