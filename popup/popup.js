@@ -39,6 +39,8 @@ const elements = {
   restrictedNotice: document.getElementById('restrictedNotice'),
   restrictedReason: document.getElementById('restrictedReason'),
   mainContent: document.getElementById('mainContent'),
+  guideStrip: document.getElementById('guideStrip'),
+  btnDismissGuide: document.getElementById('btnDismissGuide'),
   searchInput: document.getElementById('searchInput'),
   btnClearSearch: document.getElementById('btnClearSearch'),
   scopeUrl: document.getElementById('scopeUrl'),
@@ -120,6 +122,54 @@ function showToast(message, isError = false) {
   }, 2500);
 }
 
+// First-open guide strip helpers.
+// The strip (with the trust line inside it) shows until the user completes a
+// first core action (save, delete, import, clear) or dismisses it manually.
+// Dismissal is persisted in chrome.storage.local so it never reappears,
+// including after a browser restart. No new permissions: 'storage' is
+// already declared in the manifest.
+const GUIDE_DISMISSED_KEY = 'cookiesmith_guide_dismissed';
+let guideDismissedCache = null;
+
+async function isGuideDismissed() {
+  if (guideDismissedCache !== null) return guideDismissedCache;
+  guideDismissedCache = false;
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      const data = await chrome.storage.local.get(GUIDE_DISMISSED_KEY);
+      guideDismissedCache = Boolean(data && data[GUIDE_DISMISSED_KEY]);
+    }
+  } catch {
+    // Storage unavailable (e.g. standalone preview): treat as not dismissed
+    // for this session only.
+  }
+  return guideDismissedCache;
+}
+
+async function refreshGuideStrip() {
+  if (!elements.guideStrip) return;
+  const dismissed = await isGuideDismissed();
+  if (dismissed) {
+    elements.guideStrip.classList.add('hidden');
+  } else {
+    elements.guideStrip.classList.remove('hidden');
+  }
+}
+
+async function dismissGuideStrip() {
+  guideDismissedCache = true;
+  if (elements.guideStrip) {
+    elements.guideStrip.classList.add('hidden');
+  }
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      await chrome.storage.local.set({ [GUIDE_DISMISSED_KEY]: true });
+    }
+  } catch {
+    // Non-fatal: the strip stays hidden for this popup session.
+  }
+}
+
 // Modal open/close helpers with focus management and trapping
 let lastFocusedElement = null;
 
@@ -165,6 +215,8 @@ async function loadTabAndCookies() {
 
   elements.restrictedNotice.classList.add('hidden');
   elements.mainContent.classList.remove('hidden');
+
+  await refreshGuideStrip();
 
   // Update domain pill
   elements.activeDomain.textContent = state.tabInfo.hostname || 'Active Tab';
@@ -375,6 +427,7 @@ function createCookieCard(cookie) {
     e.stopPropagation();
     try {
       await deleteCookie(cookie, state.tabInfo.url);
+      await dismissGuideStrip();
       showToast(`Deleted cookie "${cookie.name}"`);
       await reloadCookies();
     } catch (err) {
@@ -552,6 +605,7 @@ function renderCardEditor(editorEl, cookie) {
   btnDelete.addEventListener('click', async () => {
     try {
       await deleteCookie(cookie, state.tabInfo.url);
+      await dismissGuideStrip();
       showToast(`Deleted cookie "${cookie.name}"`);
       await reloadCookies();
     } catch (err) {
@@ -590,6 +644,7 @@ function renderCardEditor(editorEl, cookie) {
         storeId: cookie.storeId
       }, state.tabInfo.url, cookie);
 
+      await dismissGuideStrip();
       showToast(`Saved cookie "${cookie.name}"`);
       await reloadCookies();
     } catch (err) {
@@ -670,6 +725,13 @@ function escapeHtml(str) {
 
 // Attach all DOM Event Listeners
 function attachEventListeners() {
+  // Guide strip manual dismiss
+  if (elements.btnDismissGuide) {
+    elements.btnDismissGuide.addEventListener('click', async () => {
+      await dismissGuideStrip();
+    });
+  }
+
   // Refresh button
   elements.btnRefresh.addEventListener('click', async () => {
     elements.btnRefresh.classList.add('spinning');
@@ -816,6 +878,7 @@ function attachEventListeners() {
       }, state.tabInfo.url);
 
       closeModal(elements.cookieFormModal);
+      await dismissGuideStrip();
       showToast(`Added cookie "${name}"`);
       await reloadCookies();
     } catch (err) {
@@ -894,6 +957,7 @@ function attachEventListeners() {
     try {
       const result = await importCookiesFromJson(text, state.tabInfo.url);
       closeModal(elements.importModal);
+      await dismissGuideStrip();
       showToast(`Imported ${result.successCount} of ${result.total} cookies`);
       if (result.failedCount > 0) {
         console.warn('CookieSmith import warnings:', result.errors);
@@ -909,6 +973,7 @@ function attachEventListeners() {
     try {
       const result = await deleteAllCookies(state.rawCookies, state.tabInfo.url);
       closeModal(elements.deleteAllModal);
+      await dismissGuideStrip();
       showToast(`Cleared ${result.deletedCount} cookies`);
       await reloadCookies();
     } catch (err) {

@@ -227,6 +227,65 @@ body {
   overflow: hidden;
 }
 
+/* First-Open Guide Strip */
+.guide-strip {
+  position: relative;
+  margin: 10px 14px 0;
+  padding: 7px 28px 7px 10px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.guide-entries {
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.guide-sep {
+  color: var(--text-dim);
+  margin: 0 4px;
+}
+
+.guide-trust {
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.guide-privacy-link {
+  color: var(--primary);
+  text-decoration: none;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+.guide-privacy-link:hover {
+  text-decoration: underline;
+}
+
+.guide-dismiss {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.guide-dismiss:hover {
+  color: var(--text-main);
+  background-color: var(--bg-surface-hover);
+}
+
 /* Toolbar */
 .toolbar {
   display: flex;
