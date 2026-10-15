@@ -334,6 +334,10 @@ export async function setCookie(cookieData, fallbackTabUrl, previousCookie = nul
     setDetails.storeId = cookieData.storeId;
   }
 
+  if (cookieData.partitionKey) {
+    setDetails.partitionKey = cookieData.partitionKey;
+  }
+
   // Expiration handling: session vs persistent
   if (!cookieData.isSession && cookieData.expirationDate) {
     const expNum = Number(cookieData.expirationDate);
@@ -370,6 +374,9 @@ export async function setCookie(cookieData, fallbackTabUrl, previousCookie = nul
       expirationDate: setDetails.expirationDate,
       storeId: setDetails.storeId || '0'
     };
+    if (setDetails.partitionKey) {
+      newEntry.partitionKey = setDetails.partitionKey;
+    }
     if (idx >= 0) mockStore[idx] = newEntry;
     else mockStore.push(newEntry);
     return newEntry;

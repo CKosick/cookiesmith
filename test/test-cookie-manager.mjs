@@ -9,7 +9,8 @@ import {
   buildCookieUrl,
   enrichCookie,
   filterAndSortCookies,
-  exportCookiesToJson
+  exportCookiesToJson,
+  setCookie
 } from '../src/cookie-manager.js';
 
 let passed = 0;
@@ -258,6 +259,83 @@ assert(searchBench.length >= 10, 'Search across 500 cookies matches correctly (1
 assert(filterBench.length === 100, 'Filter session cookies from 500 returns exact count (100)');
 assert(sortBench.length === 500, 'Sort 500 cookies completes');
 assert(duration < 25, `500 cookie search/filter/sort completed in ${duration.toFixed(2)}ms (< 25ms threshold)`);
+
+// -------------------------------------------------------------------
+// Test Suite 8: Undo Restore Probes (stubbed chrome.cookies)
+// Regression coverage for the Claude review of the delete Undo (F2/F3):
+// restoring must target the deleted cookie's own host for host-only
+// cookies, and must carry partitionKey through chrome.cookies.set
+// instead of silently restoring the cookie unpartitioned.
+// -------------------------------------------------------------------
+console.log('\nSuite 8: Undo Restore Probes (stubbed chrome.cookies)');
+const undoTabUrl = 'https://www.example.com/account';
+const hostOnlySnapshot = {
+  name: 'api_session',
+  value: 'abc123',
+  domain: 'api.example.com',
+  path: '/',
+  secure: true,
+  httpOnly: true,
+  sameSite: 'lax',
+  hostOnly: true,
+  isSession: true,
+  expirationDate: undefined,
+  storeId: '0'
+};
+
+// The popup Undo builds its restore URL from the snapshot itself.
+const undoRestoreUrl = buildCookieUrl(hostOnlySnapshot, undoTabUrl);
+assert(new URL(undoRestoreUrl).hostname === 'api.example.com', 'Undo restore URL targets the deleted host-only cookie\'s own host');
+// Control: the pre-fix call shape (the bare tab URL as fallback) resolves
+// to the tab's host instead, which is the bug being guarded against.
+const preFixUrl = buildCookieUrl({ ...hostOnlySnapshot, domain: '' }, undoTabUrl);
+assert(new URL(preFixUrl).hostname === 'www.example.com', 'Control: building from the bare tab URL lands on the tab host (the old bug)');
+
+const capturedSetDetails = [];
+globalThis.chrome = {
+  cookies: {
+    set: async (details) => { capturedSetDetails.push(details); return { ...details }; },
+    remove: async (details) => ({ ...details })
+  },
+  runtime: {}
+};
+
+await setCookie({ ...hostOnlySnapshot }, undoRestoreUrl);
+const hostOnlySet = capturedSetDetails[capturedSetDetails.length - 1];
+assert(new URL(hostOnlySet.url).hostname === 'api.example.com', 'chrome.cookies.set is called with the api.example.com URL for the host-only restore');
+assert(hostOnlySet.domain === undefined, 'Host-only restore passes no domain attribute, so the cookie stays host-only');
+
+const partitionedSnapshot = {
+  name: 'pcs_cookie',
+  value: 'p1',
+  domain: '.example.com',
+  path: '/',
+  secure: true,
+  httpOnly: false,
+  sameSite: 'lax',
+  hostOnly: false,
+  isSession: false,
+  expirationDate: 1893456000,
+  storeId: '0',
+  partitionKey: { topLevelSite: 'https://shop.example.com', hasCrossSiteAncestor: false }
+};
+capturedSetDetails.length = 0;
+await setCookie({ ...partitionedSnapshot }, buildCookieUrl(partitionedSnapshot, undoTabUrl));
+const partitionedSet = capturedSetDetails[capturedSetDetails.length - 1];
+assert(Boolean(partitionedSet.partitionKey) && partitionedSet.partitionKey.topLevelSite === 'https://shop.example.com', 'chrome.cookies.set receives the snapshot partitionKey on restore');
+
+// If the API refuses the partitioned set, setCookie must throw so the
+// Undo can surface it, never succeed by dropping the partition.
+globalThis.chrome.cookies.set = async () => null;
+let partitionedRestoreThrew = false;
+try {
+  await setCookie({ ...partitionedSnapshot }, buildCookieUrl(partitionedSnapshot, undoTabUrl));
+} catch {
+  partitionedRestoreThrew = true;
+}
+assert(partitionedRestoreThrew, 'A refused partitioned restore throws instead of silently restoring unpartitioned');
+
+delete globalThis.chrome;
 
 console.log(`\n====================================================`);
 console.log(`Summary: ${passed} passed, ${failed} failed`);

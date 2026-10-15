@@ -51,6 +51,7 @@ const html = fs.readFileSync(path.join(repoRoot, 'popup/popup.html'), 'utf8');
 const popupJs = fs.readFileSync(path.join(repoRoot, 'popup/popup.js'), 'utf8');
 const css = fs.readFileSync(path.join(repoRoot, 'popup/popup.css'), 'utf8');
 const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, 'manifest.json'), 'utf8'));
+const cookieManagerJs = fs.readFileSync(path.join(repoRoot, 'src/cookie-manager.js'), 'utf8');
 
 // -------------------------------------------------------------------
 // Suite 1: Fix 4 - plain vocabulary and field hints
@@ -118,6 +119,11 @@ const undoDurationMatch = popupJs.match(/UNDO_TOAST_DURATION_MS = (\d+)/);
 assert(Boolean(undoDurationMatch) && Number(undoDurationMatch[1]) >= 10000, 'Undo offer lasts at least 10 seconds');
 assert(popupJs.includes('setCookie({ ...snapshot }'), 'Undo re-creates the cookie from the snapshot via setCookie');
 assert(popupJs.includes('Restored cookie'), 'Undo confirms the restore and the list reloads');
+assert(popupJs.includes('buildCookieUrl(snapshot'), 'Undo builds its restore URL from the snapshot, not from the tab (host-only cookies return to their own host)');
+assert(popupJs.includes('partitionKey: cookie.partitionKey'), 'Undo snapshot keeps the cookie partitionKey');
+assert(cookieManagerJs.includes('setDetails.partitionKey = cookieData.partitionKey'), 'setCookie passes partitionKey through to chrome.cookies.set');
+assert(popupJs.includes('Could not restore partitioned cookie'), 'A refused partitioned restore is surfaced on the toast, never silently restored unpartitioned');
+assert(popupJs.includes('undoOfferExpiresAt'), 'A plain toast inside the Undo window no longer destroys the Undo offer before its deadline');
 assert(css.includes('.toast-action-btn'), 'Toast action button styling exists in popup.css');
 
 // -------------------------------------------------------------------

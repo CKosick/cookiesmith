@@ -117,20 +117,33 @@ let toastTimeout = null;
 // only so the delete toast can offer Undo. Module state dies with the
 // popup, so closing and reopening the popup clears the offer.
 let lastDeletedCookie = null;
+// Deadline (ms epoch) until which a pending delete Undo offer must stay
+// reachable, even if another toast renders in the meantime.
+let undoOfferExpiresAt = 0;
 function showToast(message, isError = false) {
   if (toastTimeout) clearTimeout(toastTimeout);
-  // A plain toast replaces any pending delete Undo offer.
-  lastDeletedCookie = null;
-  elements.toastActionBtn.classList.add('hidden');
-  elements.toast.classList.remove('toast-actionable');
+  // A plain toast may replace the delete toast visually, but it must not
+  // destroy a live Undo offer: the snapshot and the Undo button stay in
+  // place until the offer's original deadline.
+  const undoStillOffered = lastDeletedCookie !== null && Date.now() < undoOfferExpiresAt;
+  if (!undoStillOffered) {
+    lastDeletedCookie = null;
+    undoOfferExpiresAt = 0;
+    elements.toastActionBtn.classList.add('hidden');
+    elements.toast.classList.remove('toast-actionable');
+  }
   elements.toastMessage.textContent = message;
   elements.toastIcon.textContent = isError ? '✕' : '✓';
   elements.toastIcon.style.color = isError ? '#ef4444' : '#f59e0b';
   elements.toast.classList.remove('hidden');
 
-  toastTimeout = setTimeout(() => {
-    elements.toast.classList.add('hidden');
-  }, 2500);
+  if (undoStillOffered) {
+    toastTimeout = setTimeout(hideToast, Math.max(0, undoOfferExpiresAt - Date.now()));
+  } else {
+    toastTimeout = setTimeout(() => {
+      elements.toast.classList.add('hidden');
+    }, 2500);
+  }
 }
 
 // First-open guide strip helpers.
@@ -211,7 +224,8 @@ function snapshotCookieForUndo(cookie) {
     hostOnly: Boolean(cookie.hostOnly),
     isSession: Boolean(cookie.isSession ?? !cookie.expirationDate),
     expirationDate: cookie.expirationDate,
-    storeId: cookie.storeId
+    storeId: cookie.storeId,
+    partitionKey: cookie.partitionKey
   };
 }
 
@@ -220,6 +234,8 @@ function hideToast() {
     clearTimeout(toastTimeout);
     toastTimeout = null;
   }
+  lastDeletedCookie = null;
+  undoOfferExpiresAt = 0;
   elements.toast.classList.add('hidden');
   elements.toast.classList.remove('toast-actionable');
   elements.toastActionBtn.classList.add('hidden');
@@ -227,6 +243,7 @@ function hideToast() {
 
 function showDeleteUndoToast(cookie) {
   if (toastTimeout) clearTimeout(toastTimeout);
+  undoOfferExpiresAt = Date.now() + UNDO_TOAST_DURATION_MS;
   elements.toastMessage.textContent = `Deleted cookie "${cookie.name}" from ${cookie.domain || 'this site'}`;
   elements.toastIcon.textContent = '✓';
   elements.toastIcon.style.color = '#f59e0b';
@@ -259,7 +276,23 @@ async function undoLastDelete() {
   }
   lastDeletedCookie = null;
   hideToast();
-  await setCookie({ ...snapshot }, state.tabInfo.url);
+  // Build the restore URL from the snapshot itself, not from the current
+  // tab: a host-only cookie deleted from another subdomain (visible in
+  // Entire Domain scope) must be re-created on its own host, and
+  // setCookie would otherwise fall back to the tab's host for it.
+  const restoreUrl = buildCookieUrl(snapshot, state.tabInfo.url);
+  try {
+    await setCookie({ ...snapshot }, restoreUrl);
+  } catch (err) {
+    if (snapshot.partitionKey) {
+      // Never fall back to restoring a partitioned cookie unpartitioned;
+      // say so on the toast instead.
+      showToast(`Could not restore partitioned cookie "${snapshot.name}": ${err.message}`, true);
+      await reloadCookies();
+      return;
+    }
+    throw err;
+  }
   showToast(`Restored cookie "${snapshot.name}"`);
   await reloadCookies();
 }
