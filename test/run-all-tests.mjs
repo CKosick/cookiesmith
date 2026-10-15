@@ -4,6 +4,7 @@
  * - Unit & Edge Case Suite (test-cookie-manager.mjs)
  * - Security & Zero-Telemetry Audit (test-security-audit.mjs)
  * - Import/Export Stress & Compatibility Suite (test-import-export-stress.mjs)
+ * - First-Run Audit Fixes Verification (test-first-run-fixes.mjs)
  */
 
 import { execSync } from 'child_process';
@@ -16,7 +17,8 @@ console.log('╚═════════════════════�
 const testSuites = [
   { name: 'Unit & Edge Cases Suite', file: 'test/test-cookie-manager.mjs' },
   { name: 'Security & Zero-Telemetry Audit', file: 'test/test-security-audit.mjs' },
-  { name: 'Import/Export Stress & Compatibility Suite', file: 'test/test-import-export-stress.mjs' }
+  { name: 'Import/Export Stress & Compatibility Suite', file: 'test/test-import-export-stress.mjs' },
+  { name: 'First-Run Audit Fixes Verification', file: 'test/test-first-run-fixes.mjs' }
 ];
 
 let totalPassed = 0;
