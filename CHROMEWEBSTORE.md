@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — CookieSmith
 
-> Last Updated: 2026-10-05
+> Last Updated: 2026-10-14
 
 ## Store Listing
 
@@ -25,18 +25,18 @@ KEY FEATURES
 - Filter cookies by Session, Persistent, Secure, HttpOnly, and Third-Party context.
 - Sort cookies by name, expiration date, or size.
 - Export cookies to standard JSON format (compatible with EditThisCookie and automated testing workflows) via clipboard or file download.
-- Import cookies from JSON files or clipboard with error validation and overwrite protection.
+- Import cookies from a JSON file or pasted JSON, with per-item error reporting.
 - Built strictly for Manifest V3 with an ephemeral service worker lifecycle.
 
 HOW TO USE IT
 1. Click the CookieSmith icon in your browser toolbar while on any webpage.
 2. View the complete list of cookies for the current site.
 3. Click any cookie row to expand its details and edit its value, flags, or expiration date.
-4. Click "Add" to forge a new cookie, or use "Import" / "Export" to transfer cookies as JSON.
+4. Click "Add" to create a new cookie, or use "Import" / "Export" to transfer cookies as JSON.
 5. Use "Clear All" whenever you need a clean session reset.
 
 PRIVACY & PERMISSIONS
-CookieSmith does not collect, log, store, or transmit your personal data, browsing activity, or cookie contents. We request only the minimal permissions necessary for the chrome.cookies API to inspect cookies on the active tab upon your request.
+CookieSmith does not collect, log, store, or transmit your personal data, browsing activity, or cookie contents. We request only the minimal permissions necessary for the chrome.cookies API to inspect cookies on the active tab and keep the cookie count badge current.
 
 SUPPORT & SOURCE CODE
 CookieSmith is fully open source. You can inspect the source code, verify network silence in Chrome DevTools, report issues, and submit feedback via GitHub.
@@ -76,10 +76,10 @@ English
 
 | Permission | Type | Justification |
 |---|---|---|
-| `cookies` | permissions | Allows reading, creating, modifying, and deleting cookies when the user opens the CookieSmith popup. Cookie contents never leave the user's local machine. |
+| `cookies` | permissions | Reads, creates, edits and deletes cookies when the user acts in the popup, and reads the active tab's cookie count to show it on the toolbar badge. Cookie contents never leave the device. |
 | `activeTab` | permissions | Allows detecting the active tab's hostname and protocol when the user clicks the extension action, so CookieSmith displays cookies relevant strictly to that active webpage. |
-| `storage` | permissions | Used strictly to store user UI preferences (such as sort order and filter state) locally in `chrome.storage.local`. No data is synced off-device. |
-| `<all_urls>` | host_permissions | Required by Chrome's extension security model for the `chrome.cookies` API to inspect and manage cookies on whichever website the user chooses to open CookieSmith on. The extension operates strictly on direct user request for the active tab's domain and never makes background web requests. |
+| `storage` | permissions | Stores one local flag recording that the user dismissed the first-run guide. Nothing is synced off the device. |
+| `<all_urls>` | host_permissions | Required by Chrome's extension security model for the `chrome.cookies` API to inspect and manage cookies on whichever website the user chooses to open CookieSmith on. It reads cookies only for the site in the active tab, and never makes background web requests. |
 
 ---
 
