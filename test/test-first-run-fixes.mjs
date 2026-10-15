@@ -138,6 +138,7 @@ assert(/id="toastAnnouncer"[^>]*aria-live="polite"/.test(html), 'Screen-reader a
 assert(html.includes('id="toastAnnouncer" class="sr-only"'), 'Announcer uses the visually hidden sr-only styling and is always rendered, never display:none');
 assert(css.includes('.sr-only'), 'Announcer styling exists in popup.css');
 assert(popupJs.includes('announceToastForScreenReaders'), 'Popup mirrors toast messages into the announcer for screen readers');
+assert(sliceFrom('function showDeleteUndoToast', 1200).includes('Undo delete available'), 'Delete announcement tells screen-reader users the Undo delete action is available');
 assert(html.includes('>Undo delete</button>'), 'Toast action button is labelled "Undo delete"');
 assert(popupJs.includes("toastActionBtn.textContent = 'Undo delete'"), 'Delete toast sets the "Undo delete" label in JS as well');
 assert(popupJs.includes('lastDeletedCookie'), 'Deleted cookie snapshot is kept in popup memory');

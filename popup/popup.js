@@ -276,7 +276,9 @@ function showDeleteUndoToast(cookie) {
   elements.toastActionBtn.classList.remove('hidden');
   elements.toast.classList.add('toast-actionable');
   elements.toast.classList.remove('hidden');
-  announceToastForScreenReaders(elements.toastMessage.textContent);
+  // The announced text adds what the visible toast only shows as a button:
+  // screen-reader users should hear that the Undo delete action exists.
+  announceToastForScreenReaders(`${elements.toastMessage.textContent}. Undo delete available`);
 
   toastTimeout = setTimeout(() => {
     hideToast();
