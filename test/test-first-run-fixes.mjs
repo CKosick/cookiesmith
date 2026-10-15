@@ -15,6 +15,15 @@
  *   Undo on the toast for at least 10 seconds.
  * - Fix 7: visible Edit affordance on every card header.
  * Also guards the standing rule: no new manifest permissions.
+ *
+ * Claude review pass (2026-10-14, at 573ac13) additions:
+ * - F1: the trust line must not claim reads happen only while the popup is
+ *   open (the service worker reads with it closed); exact replacement
+ *   sentence asserted below.
+ * - Fix 2 height: guide entries share one line so the strip renders to
+ *   about two lines at the 520px popup width.
+ * - F6 addition: the toast is a polite live region (role="status",
+ *   aria-live="polite") so the delete message and Undo offer are announced.
  */
 
 import fs from 'fs';
@@ -64,12 +73,15 @@ assert(css.includes('.field-hint'), 'Field hint styling exists in popup.css');
 // -------------------------------------------------------------------
 console.log('\nSuite 2: Fixes 2 + 5 - Guide Strip & Trust Line');
 assert(html.includes('id="guideStrip"'), 'Guide strip element exists in popup.html');
-assert(html.includes('Pick a cookie in the list to edit or delete it'), 'Guide entry 1: pick a cookie to edit or delete it');
-assert(html.includes('Clear All signs you out of this site'), 'Guide entry 2: Clear All signs you out of this site');
+assert(html.includes('Pick a cookie to edit or delete it'), 'Guide entry 1: pick a cookie to edit or delete it');
+assert(html.includes('Clear All signs you out'), 'Guide entry 2: Clear All signs you out');
+assert(!html.includes('Clear All signs you out of this site'), 'Guide entry 2 is trimmed so the entries fit one line (height fix)');
 assert(html.includes('Add creates a new cookie'), 'Guide entry 3: Add creates a new cookie');
+assert(/\.guide-entries\s*\{[^}]*white-space:\s*nowrap/.test(css), 'Guide entries are held to a single line so the strip renders about two lines tall');
 assert(html.includes('id="btnDismissGuide"'), 'Guide strip has a manual dismiss control');
-assert(html.includes('only reads cookies when this popup is open'), 'Trust line: reads cookies only when the popup is open');
-assert(html.includes('nothing is ever sent off the device'), 'Trust line: nothing is ever sent off the device');
+assert(html.includes('CookieSmith works only on your device, and nothing is ever sent off it.'), 'Trust line: works only on your device, and nothing is ever sent off it');
+assert(!html.includes('only reads cookies when this popup is open'), 'Trust line no longer claims reads happen only while the popup is open (the service worker reads with it closed)');
+assert(!popupJs.includes('only reads cookies when this popup is open'), 'No popup-open read claim remains in popup.js');
 assert((html.match(/\.\.\/privacy\.html/g) || []).length >= 2, 'Privacy policy link appears in the guide strip and the footer');
 assert(css.includes('.guide-strip'), 'Guide strip styling exists in popup.css');
 assert(popupJs.includes('cookiesmith_guide_dismissed'), 'Guide dismissal uses a persisted storage key');
@@ -93,6 +105,8 @@ assert(popupJs.includes('scopeDomain.checked = true'), 'Scope switch activates t
 // -------------------------------------------------------------------
 console.log('\nSuite 4: Fix 6 - Delete Undo');
 assert(html.includes('id="toastActionBtn"'), 'Toast carries an action button element');
+assert(/id="toast"[^>]*role="status"/.test(html), 'Toast carries role="status"');
+assert(/id="toast"[^>]*aria-live="polite"/.test(html), 'Toast is a polite live region so screen readers announce the delete and the Undo offer');
 assert(html.includes('>Undo</button>'), 'Toast action button is labelled "Undo"');
 assert(popupJs.includes('lastDeletedCookie'), 'Deleted cookie snapshot is kept in popup memory');
 assert(popupJs.includes('snapshotCookieForUndo'), 'Delete flow snapshots the full cookie before deleting');

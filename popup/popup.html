@@ -47,14 +47,14 @@
       <!-- First-Open Guide Strip (hidden permanently after a core action or manual dismiss) -->
       <div id="guideStrip" class="guide-strip hidden">
         <div class="guide-entries">
-          <span class="guide-entry">Pick a cookie in the list to edit or delete it</span>
+          <span class="guide-entry">Pick a cookie to edit or delete it</span>
           <span class="guide-sep" aria-hidden="true">•</span>
-          <span class="guide-entry">Clear All signs you out of this site</span>
+          <span class="guide-entry">Clear All signs you out</span>
           <span class="guide-sep" aria-hidden="true">•</span>
           <span class="guide-entry">Add creates a new cookie</span>
         </div>
         <div class="guide-trust">
-          <span>CookieSmith only reads cookies when this popup is open, and nothing is ever sent off the device.</span>
+          <span>CookieSmith works only on your device, and nothing is ever sent off it.</span>
           <a href="../privacy.html" target="_blank" class="guide-privacy-link">Privacy Policy</a>
         </div>
         <button id="btnDismissGuide" class="guide-dismiss" title="Dismiss guide" aria-label="Dismiss guide">✕</button>
@@ -298,7 +298,7 @@
     </div>
 
     <!-- Floating Toast Notification -->
-    <div id="toast" class="toast hidden">
+    <div id="toast" class="toast hidden" role="status" aria-live="polite">
       <span id="toastIcon" class="toast-icon">✓</span>
       <span id="toastMessage" class="toast-message">Action succeeded</span>
       <button id="toastActionBtn" class="toast-action-btn hidden">Undo</button>
