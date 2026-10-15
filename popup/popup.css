@@ -879,6 +879,10 @@ body {
   margin-bottom: 12px;
 }
 
+.empty-state .btn + .btn {
+  margin-top: 6px;
+}
+
 /* Modals */
 .modal-backdrop {
   position: fixed;

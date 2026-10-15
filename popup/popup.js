@@ -27,6 +27,7 @@ const state = {
   activeFilter: 'all',
   activeSort: 'name-asc',
   domainWideScope: false,
+  domainCookieCount: 0,
   editingCookie: null
 };
 
@@ -51,6 +52,7 @@ const elements = {
   emptyTitle: document.getElementById('emptyTitle'),
   emptyDesc: document.getElementById('emptyDesc'),
   btnEmptyAdd: document.getElementById('btnEmptyAdd'),
+  btnEmptyScope: document.getElementById('btnEmptyScope'),
 
   // Filter Chips
   chips: document.querySelectorAll('.chip'),
@@ -232,6 +234,20 @@ async function reloadCookies() {
     });
     elements.badgeCount.textContent = String(state.rawCookies.length);
 
+    // Fix 3 support: when Tab URL scope is empty, learn whether the wider
+    // domain scope has cookies so the empty state can say so and offer the
+    // switch. getCookies with domainWide merges URL + domain results, so
+    // with an empty URL scope its count is exactly the domain-scope count.
+    state.domainCookieCount = 0;
+    if (!state.domainWideScope && state.rawCookies.length === 0) {
+      try {
+        const domainCookies = await getCookies(state.tabInfo, { domainWide: true });
+        state.domainCookieCount = domainCookies.length;
+      } catch {
+        state.domainCookieCount = 0;
+      }
+    }
+
     updateFilterCounts();
     applyFilterAndRender();
   } catch (err) {
@@ -292,6 +308,7 @@ function renderCookieList() {
     elements.emptyState.classList.remove('hidden');
 
     if (state.searchQuery || state.activeFilter !== 'all') {
+      elements.btnEmptyScope.classList.add('hidden');
       elements.emptyTitle.textContent = 'No matching cookies';
       elements.emptyDesc.textContent = 'No cookies match your active search or filter criteria.';
       elements.btnEmptyAdd.textContent = 'Reset Filters';
@@ -301,7 +318,20 @@ function renderCookieList() {
         elements.btnClearSearch.classList.add('hidden');
         setActiveFilter('all');
       };
+    } else if (!state.domainWideScope && state.domainCookieCount > 0) {
+      // Tab URL scope is empty but the wider domain has cookies: say how
+      // many and offer a one-click switch to the Entire Domain scope.
+      const count = state.domainCookieCount;
+      const domainLabel = state.tabInfo.baseDomain || state.tabInfo.hostname;
+      elements.emptyTitle.textContent = 'No cookies for this page';
+      elements.emptyDesc.textContent = `This page has no cookies in Tab URL scope, but ${count} cookie${count === 1 ? '' : 's'} exist for the entire domain (${domainLabel}).`;
+      elements.btnEmptyAdd.textContent = '+ Add New Cookie';
+      elements.btnEmptyAdd.onclick = () => openAddCookieModal();
+      elements.btnEmptyScope.textContent = `Show ${count} domain cookie${count === 1 ? '' : 's'}`;
+      elements.btnEmptyScope.classList.remove('hidden');
+      elements.btnEmptyScope.onclick = () => switchToDomainScope();
     } else {
+      elements.btnEmptyScope.classList.add('hidden');
       elements.emptyTitle.textContent = 'No cookies found';
       elements.emptyDesc.textContent = `No cookies are currently set for ${state.tabInfo.hostname}.`;
       elements.btnEmptyAdd.textContent = '+ Add New Cookie';
@@ -697,6 +727,14 @@ function openDeleteAllModal() {
   elements.deleteAllCount.textContent = String(state.rawCookies.length);
   elements.deleteAllDomain.textContent = state.domainWideScope ? (state.tabInfo.baseDomain || state.tabInfo.hostname) : state.tabInfo.hostname;
   openModal(elements.deleteAllModal);
+}
+
+// Switch the scope toggle to Entire Domain and reload in place
+async function switchToDomainScope() {
+  state.domainWideScope = true;
+  elements.scopeDomain.checked = true;
+  elements.scopeUrl.checked = false;
+  await reloadCookies();
 }
 
 // Set active filter chip
