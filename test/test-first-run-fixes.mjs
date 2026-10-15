@@ -20,10 +20,22 @@
  * - F1: the trust line must not claim reads happen only while the popup is
  *   open (the service worker reads with it closed); exact replacement
  *   sentence asserted below.
- * - Fix 2 height: guide entries share one line so the strip renders to
- *   about two lines at the 520px popup width.
- * - F6 addition: the toast is a polite live region (role="status",
- *   aria-live="polite") so the delete message and Undo offer are announced.
+ * - Fix 2 height: guide entries fit one line on Windows/Segoe so the strip
+ *   renders to about two lines at the 520px popup width.
+ * - F6 addition: toast messages are announced to screen readers via a
+ *   polite live region (role="status", aria-live="polite").
+ *
+ * Claude re-review pass (2026-10-14, at 70feecd) fixes:
+ * - The Undo-preservation change let the button ride along next to a later
+ *   "Cleared N cookies" message, reading as an undo for the Clear All.
+ *   The button is now labelled "Undo delete", and Clear All and Import
+ *   completions end any pending offer (endUndoOffer in the handlers).
+ * - Guide entries no longer use nowrap: a wider system font would push
+ *   the text under the dismiss button; wrapping is the safe failure.
+ * - The live region moved off the visible toast (display:none between
+ *   messages, which some screen readers never announce after un-hiding)
+ *   onto a permanent visually hidden announcer that popup.js mirrors
+ *   every toast message into.
  */
 
 import fs from 'fs';
@@ -78,7 +90,7 @@ assert(html.includes('Pick a cookie to edit or delete it'), 'Guide entry 1: pick
 assert(html.includes('Clear All signs you out'), 'Guide entry 2: Clear All signs you out');
 assert(!html.includes('Clear All signs you out of this site'), 'Guide entry 2 is trimmed so the entries fit one line (height fix)');
 assert(html.includes('Add creates a new cookie'), 'Guide entry 3: Add creates a new cookie');
-assert(/\.guide-entries\s*\{[^}]*white-space:\s*nowrap/.test(css), 'Guide entries are held to a single line so the strip renders about two lines tall');
+assert(!/\.guide-entries\s*\{[^}]*white-space:\s*nowrap/.test(css), 'Guide entries are not held to one line: on wider system fonts they wrap instead of sliding under the dismiss button');
 assert(html.includes('id="btnDismissGuide"'), 'Guide strip has a manual dismiss control');
 assert(html.includes('CookieSmith works only on your device, and nothing is ever sent off it.'), 'Trust line: works only on your device, and nothing is ever sent off it');
 assert(!html.includes('only reads cookies when this popup is open'), 'Trust line no longer claims reads happen only while the popup is open (the service worker reads with it closed)');
@@ -121,9 +133,13 @@ assert(popupJs.includes('scopeDomain.checked = true'), 'Scope switch activates t
 // -------------------------------------------------------------------
 console.log('\nSuite 4: Fix 6 - Delete Undo');
 assert(html.includes('id="toastActionBtn"'), 'Toast carries an action button element');
-assert(/id="toast"[^>]*role="status"/.test(html), 'Toast carries role="status"');
-assert(/id="toast"[^>]*aria-live="polite"/.test(html), 'Toast is a polite live region so screen readers announce the delete and the Undo offer');
-assert(html.includes('>Undo</button>'), 'Toast action button is labelled "Undo"');
+assert(/id="toastAnnouncer"[^>]*role="status"/.test(html), 'Screen-reader announcer carries role="status"');
+assert(/id="toastAnnouncer"[^>]*aria-live="polite"/.test(html), 'Screen-reader announcer is a polite live region so screen readers announce the delete and the Undo offer');
+assert(html.includes('id="toastAnnouncer" class="sr-only"'), 'Announcer uses the visually hidden sr-only styling and is always rendered, never display:none');
+assert(css.includes('.sr-only'), 'Announcer styling exists in popup.css');
+assert(popupJs.includes('announceToastForScreenReaders'), 'Popup mirrors toast messages into the announcer for screen readers');
+assert(html.includes('>Undo delete</button>'), 'Toast action button is labelled "Undo delete"');
+assert(popupJs.includes("toastActionBtn.textContent = 'Undo delete'"), 'Delete toast sets the "Undo delete" label in JS as well');
 assert(popupJs.includes('lastDeletedCookie'), 'Deleted cookie snapshot is kept in popup memory');
 assert(popupJs.includes('snapshotCookieForUndo'), 'Delete flow snapshots the full cookie before deleting');
 assert(popupJs.includes('Deleted cookie "${cookie.name}" from ${cookie.domain'), 'Delete toast names the cookie and its domain');
@@ -136,6 +152,9 @@ assert(popupJs.includes('partitionKey: cookie.partitionKey'), 'Undo snapshot kee
 assert(cookieManagerJs.includes('setDetails.partitionKey = cookieData.partitionKey'), 'setCookie passes partitionKey through to chrome.cookies.set');
 assert(popupJs.includes('Could not restore partitioned cookie'), 'A refused partitioned restore is surfaced on the toast, never silently restored unpartitioned');
 assert(popupJs.includes('undoOfferExpiresAt'), 'A plain toast inside the Undo window no longer destroys the Undo offer before its deadline');
+assert(popupJs.includes('function endUndoOffer()'), 'A dedicated endUndoOffer clears the snapshot, the deadline, and the button');
+assert(sliceFrom("elements.btnConfirmDeleteAll.addEventListener('click'", 900).includes('endUndoOffer()'), 'Clear All completion ends any pending Undo offer, so the "Cleared N cookies" toast carries no Undo button');
+assert(sliceFrom("elements.btnConfirmImport.addEventListener('click'", 1100).includes('endUndoOffer()'), 'Import completion ends any pending Undo offer before its result toast');
 assert(css.includes('.toast-action-btn'), 'Toast action button styling exists in popup.css');
 
 // -------------------------------------------------------------------
