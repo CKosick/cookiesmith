@@ -297,12 +297,20 @@
       </div>
     </div>
 
-    <!-- Floating Toast Notification -->
-    <div id="toast" class="toast hidden" role="status" aria-live="polite">
+    <!-- Floating Toast Notification. The live region lives on the
+         announcer below, not here: this toast is display:none between
+         messages, and some screen readers never announce a live region
+         that was just un-hidden. -->
+    <div id="toast" class="toast hidden">
       <span id="toastIcon" class="toast-icon">✓</span>
       <span id="toastMessage" class="toast-message">Action succeeded</span>
-      <button id="toastActionBtn" class="toast-action-btn hidden">Undo</button>
+      <button id="toastActionBtn" class="toast-action-btn hidden">Undo delete</button>
     </div>
+
+    <!-- Screen-reader announcer: visually hidden but always rendered,
+         so its announcements are reliable. popup.js mirrors every toast
+         message into it. -->
+    <div id="toastAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
 
     <!-- Footer Trust Pill -->
     <footer class="footer">

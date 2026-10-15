@@ -108,7 +108,8 @@ const elements = {
   toast: document.getElementById('toast'),
   toastIcon: document.getElementById('toastIcon'),
   toastMessage: document.getElementById('toastMessage'),
-  toastActionBtn: document.getElementById('toastActionBtn')
+  toastActionBtn: document.getElementById('toastActionBtn'),
+  toastAnnouncer: document.getElementById('toastAnnouncer')
 };
 
 // Toast notification helper
@@ -120,28 +121,51 @@ let lastDeletedCookie = null;
 // Deadline (ms epoch) until which a pending delete Undo offer must stay
 // reachable, even if another toast renders in the meantime.
 let undoOfferExpiresAt = 0;
+
+// Ends a pending delete Undo offer without touching the toast itself.
+// Wholesale cookie-set changes end the offer: once Clear All or an Import
+// completes, a dangling single-cookie Undo would sit next to their result
+// message and read as undoing that change instead.
+function endUndoOffer() {
+  lastDeletedCookie = null;
+  undoOfferExpiresAt = 0;
+  elements.toastActionBtn.classList.add('hidden');
+  elements.toast.classList.remove('toast-actionable');
+}
+
+// Mirrors a toast message into the permanent screen-reader live region.
+// The visible toast is display:none between messages, and some screen
+// readers never announce a live region that was just un-hidden, so the
+// announcer element stays rendered at all times and carries the text.
+function announceToastForScreenReaders(message) {
+  if (elements.toastAnnouncer) {
+    elements.toastAnnouncer.textContent = message;
+  }
+}
+
 function showToast(message, isError = false) {
   if (toastTimeout) clearTimeout(toastTimeout);
   // A plain toast may replace the delete toast visually, but it must not
-  // destroy a live Undo offer: the snapshot and the Undo button stay in
-  // place until the offer's original deadline.
+  // destroy a live Undo offer: the snapshot and the "Undo delete" button
+  // stay in place until the offer's original deadline. (Clear All and
+  // Import end the offer explicitly via endUndoOffer before showing
+  // their result toasts.)
   const undoStillOffered = lastDeletedCookie !== null && Date.now() < undoOfferExpiresAt;
   if (!undoStillOffered) {
-    lastDeletedCookie = null;
-    undoOfferExpiresAt = 0;
-    elements.toastActionBtn.classList.add('hidden');
-    elements.toast.classList.remove('toast-actionable');
+    endUndoOffer();
   }
   elements.toastMessage.textContent = message;
   elements.toastIcon.textContent = isError ? '✕' : '✓';
   elements.toastIcon.style.color = isError ? '#ef4444' : '#f59e0b';
   elements.toast.classList.remove('hidden');
+  announceToastForScreenReaders(message);
 
   if (undoStillOffered) {
     toastTimeout = setTimeout(hideToast, Math.max(0, undoOfferExpiresAt - Date.now()));
   } else {
     toastTimeout = setTimeout(() => {
       elements.toast.classList.add('hidden');
+      announceToastForScreenReaders('');
     }, 2500);
   }
 }
@@ -234,11 +258,9 @@ function hideToast() {
     clearTimeout(toastTimeout);
     toastTimeout = null;
   }
-  lastDeletedCookie = null;
-  undoOfferExpiresAt = 0;
+  endUndoOffer();
   elements.toast.classList.add('hidden');
-  elements.toast.classList.remove('toast-actionable');
-  elements.toastActionBtn.classList.add('hidden');
+  announceToastForScreenReaders('');
 }
 
 function showDeleteUndoToast(cookie) {
@@ -247,10 +269,14 @@ function showDeleteUndoToast(cookie) {
   elements.toastMessage.textContent = `Deleted cookie "${cookie.name}" from ${cookie.domain || 'this site'}`;
   elements.toastIcon.textContent = '✓';
   elements.toastIcon.style.color = '#f59e0b';
-  elements.toastActionBtn.textContent = 'Undo';
+  // "Undo delete", not "Undo": the button can outlive this message when a
+  // later toast renders inside the window, and it must never read as
+  // undoing that later action (above all not a Clear All).
+  elements.toastActionBtn.textContent = 'Undo delete';
   elements.toastActionBtn.classList.remove('hidden');
   elements.toast.classList.add('toast-actionable');
   elements.toast.classList.remove('hidden');
+  announceToastForScreenReaders(elements.toastMessage.textContent);
 
   toastTimeout = setTimeout(() => {
     hideToast();
@@ -1136,6 +1162,9 @@ function attachEventListeners() {
       const result = await importCookiesFromJson(text, state.tabInfo.url);
       closeModal(elements.importModal);
       await dismissGuideStrip();
+      // The import rewrote the cookie set wholesale; a pending
+      // single-cookie Undo offer must not survive across it.
+      endUndoOffer();
       showToast(`Imported ${result.successCount} of ${result.total} cookies`);
       if (result.failedCount > 0) {
         console.warn('CookieSmith import warnings:', result.errors);
@@ -1152,6 +1181,10 @@ function attachEventListeners() {
       const result = await deleteAllCookies(state.rawCookies, state.tabInfo.url);
       closeModal(elements.deleteAllModal);
       await dismissGuideStrip();
+      // Clear All must not leave a pending single-cookie Undo offer next
+      // to the "Cleared N cookies" message, where it would read as an
+      // undo for the Clear All itself.
+      endUndoOffer();
       showToast(`Cleared ${result.deletedCount} cookies`);
       await reloadCookies();
     } catch (err) {
