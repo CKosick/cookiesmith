@@ -252,7 +252,7 @@ function renderCookieList() {
     } else {
       elements.emptyTitle.textContent = 'No cookies found';
       elements.emptyDesc.textContent = `No cookies are currently set for ${state.tabInfo.hostname}.`;
-      elements.btnEmptyAdd.textContent = '+ Forge New Cookie';
+      elements.btnEmptyAdd.textContent = '+ Add New Cookie';
       elements.btnEmptyAdd.onclick = () => openAddCookieModal();
     }
     return;
@@ -454,6 +454,7 @@ function renderCardEditor(editorEl, cookie) {
             <option value="no_restriction" ${cookie.sameSite === 'no_restriction' ? 'selected' : ''}>None (no_restriction)</option>
             <option value="unspecified" ${!cookie.sameSite || cookie.sameSite === 'unspecified' ? 'selected' : ''}>Unspecified</option>
           </select>
+          <div class="field-hint">Controls whether the cookie is sent to other sites that embed this one.</div>
         </div>
 
         <div class="form-group">
@@ -470,14 +471,20 @@ function renderCardEditor(editorEl, cookie) {
         </div>
 
         <div class="form-group col-span-2 flags-group">
-          <label class="checkbox-label">
-            <input type="checkbox" class="edit-secure" ${cookie.secure ? 'checked' : ''}>
-            <span>Secure</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" class="edit-httponly" ${cookie.httpOnly ? 'checked' : ''}>
-            <span>HttpOnly</span>
-          </label>
+          <div class="flag-field">
+            <label class="checkbox-label">
+              <input type="checkbox" class="edit-secure" ${cookie.secure ? 'checked' : ''}>
+              <span>Secure</span>
+            </label>
+            <div class="field-hint">Only sent over secure HTTPS connections.</div>
+          </div>
+          <div class="flag-field">
+            <label class="checkbox-label">
+              <input type="checkbox" class="edit-httponly" ${cookie.httpOnly ? 'checked' : ''}>
+              <span>HttpOnly</span>
+            </label>
+            <div class="field-hint">JavaScript on the page cannot read this cookie.</div>
+          </div>
           <label class="checkbox-label">
             <input type="checkbox" class="edit-hostonly" ${cookie.hostOnly ? 'checked' : ''}>
             <span>HostOnly</span>
@@ -594,7 +601,7 @@ function renderCardEditor(editorEl, cookie) {
 // Add Cookie Modal Logic
 function openAddCookieModal() {
   state.editingCookie = null;
-  elements.formModalTitle.textContent = 'Forge New Cookie';
+  elements.formModalTitle.textContent = 'Add New Cookie';
   elements.cookieForm.reset();
 
   // Pre-fill active domain & default path
@@ -809,7 +816,7 @@ function attachEventListeners() {
       }, state.tabInfo.url);
 
       closeModal(elements.cookieFormModal);
-      showToast(`Forged cookie "${name}"`);
+      showToast(`Added cookie "${name}"`);
       await reloadCookies();
     } catch (err) {
       showToast(`Could not save cookie: ${err.message}`, true);

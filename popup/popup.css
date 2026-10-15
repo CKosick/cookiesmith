@@ -755,10 +755,24 @@ body {
 
 .flags-group {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   flex-wrap: wrap;
   padding-top: 4px;
+}
+
+.flag-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.field-hint {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  line-height: 1.35;
+  padding-top: 2px;
+  max-width: 210px;
 }
 
 .editor-actions {

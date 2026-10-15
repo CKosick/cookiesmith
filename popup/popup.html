@@ -108,7 +108,7 @@
           <div class="empty-icon">🍪</div>
           <div id="emptyTitle" class="empty-title">No cookies found</div>
           <div id="emptyDesc" class="empty-desc">This site has not set any cookies for the selected scope.</div>
-          <button id="btnEmptyAdd" class="btn btn-primary btn-sm">+ Forge New Cookie</button>
+          <button id="btnEmptyAdd" class="btn btn-primary btn-sm">+ Add New Cookie</button>
         </div>
       </div>
     </div>
@@ -119,7 +119,7 @@
     <div id="cookieFormModal" class="modal-backdrop hidden">
       <div class="modal-dialog">
         <div class="modal-header">
-          <h3 id="formModalTitle" class="modal-title">Forge New Cookie</h3>
+          <h3 id="formModalTitle" class="modal-title">Add New Cookie</h3>
           <button class="modal-close" data-close-modal="cookieFormModal">✕</button>
         </div>
         <form id="cookieForm" class="modal-body form-grid">
@@ -154,6 +154,7 @@
               <option value="no_restriction">None (no_restriction)</option>
               <option value="unspecified">Unspecified</option>
             </select>
+            <div class="field-hint">Controls whether the cookie is sent to other sites that embed this one.</div>
           </div>
 
           <div class="form-group">
@@ -172,14 +173,20 @@
           </div>
 
           <div class="form-group col-span-2 flags-group">
-            <label class="checkbox-label">
-              <input type="checkbox" id="formSecure">
-              <span>Secure (HTTPS only)</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" id="formHttpOnly">
-              <span>HttpOnly (Inaccessible to JS)</span>
-            </label>
+            <div class="flag-field">
+              <label class="checkbox-label">
+                <input type="checkbox" id="formSecure">
+                <span>Secure (HTTPS only)</span>
+              </label>
+              <div class="field-hint">Only sent over secure HTTPS connections.</div>
+            </div>
+            <div class="flag-field">
+              <label class="checkbox-label">
+                <input type="checkbox" id="formHttpOnly">
+                <span>HttpOnly (Inaccessible to JS)</span>
+              </label>
+              <div class="field-hint">JavaScript on the page cannot read this cookie.</div>
+            </div>
             <label class="checkbox-label" title="Host-only cookies do not include a domain attribute">
               <input type="checkbox" id="formHostOnly">
               <span>HostOnly</span>
