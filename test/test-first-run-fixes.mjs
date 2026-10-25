@@ -168,6 +168,27 @@ assert(popupJs.includes("querySelector('.btn-edit')"), 'Edit affordance is wired
 assert(popupJs.includes('aria-expanded="${isExpanded}"'), 'Card header keeps its aria-expanded behavior');
 assert(popupJs.includes("e.key === 'Enter'"), 'Card header keeps its keyboard toggle behavior');
 
+// 1.1.1 keyboard patch: Enter/Space on a button inside the card header must
+// not toggle the card (it used to cancel the button's own click). The guard
+// is extracted from popup.js and run against simulated key events.
+console.log('\nSuite 5b: Card Button Keyboard (1.1.1)');
+const guardSource = (popupJs.match(/function isHeaderToggleKey\(e, header\) \{[\s\S]*?\r?\n\}\r?\n/) || [])[0];
+assert(Boolean(guardSource), 'Header key guard isHeaderToggleKey exists in popup.js');
+assert(
+  /header\.addEventListener\('keydown', \(e\) => \{\s*if \(isHeaderToggleKey\(e, header\)\)/.test(popupJs),
+  'Card header keydown handler toggles only through isHeaderToggleKey'
+);
+const isHeaderToggleKey = guardSource ? new Function(`${guardSource}; return isHeaderToggleKey;`)() : () => null;
+const fakeHeader = { tag: 'header' };
+const fakeButtons = ['Edit', 'Copy', 'Delete'].map(label => ({ tag: 'button', label }));
+for (const btn of fakeButtons) {
+  assert(isHeaderToggleKey({ key: 'Enter', target: btn }, fakeHeader) === false, `Enter on the ${btn.label} button does not toggle the card`);
+  assert(isHeaderToggleKey({ key: ' ', target: btn }, fakeHeader) === false, `Space on the ${btn.label} button does not toggle the card`);
+}
+assert(isHeaderToggleKey({ key: 'Enter', target: fakeHeader }, fakeHeader) === true, 'Enter on the card header still toggles the card');
+assert(isHeaderToggleKey({ key: ' ', target: fakeHeader }, fakeHeader) === true, 'Space on the card header still toggles the card');
+assert(isHeaderToggleKey({ key: 'Tab', target: fakeHeader }, fakeHeader) === false, 'Other keys on the card header do not toggle the card');
+
 // -------------------------------------------------------------------
 // Suite 6: Standing rules - no new permissions, version untouched
 // -------------------------------------------------------------------

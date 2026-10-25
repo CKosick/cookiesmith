@@ -645,7 +645,7 @@ function createCookieCard(cookie) {
 
   header.addEventListener('click', toggleCardExpansion);
   header.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (isHeaderToggleKey(e, header)) {
       e.preventDefault();
       toggleCardExpansion();
     }
@@ -657,6 +657,17 @@ function createCookieCard(cookie) {
   }
 
   return card;
+}
+
+// Enter or Space toggles a card only when pressed on the header itself.
+// Key presses on the Edit, Copy and Delete buttons inside the header bubble
+// up to the header too; those must be left to the button's own activation,
+// otherwise preventDefault cancels the button's click and the card toggles.
+function isHeaderToggleKey(e, header) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    return e.target === header;
+  }
+  return false;
 }
 
 // Render the inline editor inside an expanded card
