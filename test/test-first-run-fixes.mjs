@@ -189,6 +189,41 @@ assert(isHeaderToggleKey({ key: 'Enter', target: fakeHeader }, fakeHeader) === t
 assert(isHeaderToggleKey({ key: ' ', target: fakeHeader }, fakeHeader) === true, 'Space on the card header still toggles the card');
 assert(isHeaderToggleKey({ key: 'Tab', target: fakeHeader }, fakeHeader) === false, 'Other keys on the card header do not toggle the card');
 
+// 1.1.1 Copy error message: a failed clipboard write used to reject with no
+// feedback. The Copy click handler is extracted from popup.js and run with a
+// stubbed clipboard and toast to check both outcomes.
+console.log('\nSuite 5c: Copy Error Message (1.1.1)');
+const copyHandlerSource = (popupJs.match(/btnCopy\.addEventListener\('click', (async \(e\) => \{[\s\S]*?)\r?\n  \}\);/) || [])[1];
+assert(Boolean(copyHandlerSource), 'Copy button click handler exists in popup.js');
+const runCopyHandler = async (writeText) => {
+  const toasts = [];
+  const handler = copyHandlerSource
+    ? new Function('navigator', 'showToast', 'cookie', `return ${copyHandlerSource}\n  };`)(
+        { clipboard: { writeText } },
+        (message, isError = false) => toasts.push({ message, isError }),
+        { name: 'session_id', value: 'abc123' }
+      )
+    : async () => {};
+  try {
+    await handler({ stopPropagation() {} });
+  } catch (err) {
+    // An unhandled rejection is exactly the bug: record it as a failure
+    // instead of crashing the suite.
+    toasts.push({ message: `UNHANDLED: ${err.message}`, isError: null });
+  }
+  return toasts;
+};
+const failedCopy = await runCopyHandler(async () => { throw new Error('Write permission denied.'); });
+assert(
+  failedCopy.length === 1 && failedCopy[0].message === 'Copy failed: Write permission denied.' && failedCopy[0].isError === true,
+  'A rejected clipboard write shows the "Copy failed: ..." error toast'
+);
+const okCopy = await runCopyHandler(async () => {});
+assert(
+  okCopy.length === 1 && okCopy[0].message === 'Copied value of "session_id"' && okCopy[0].isError === false,
+  'A successful clipboard write still shows the "Copied value of ..." toast'
+);
+
 // -------------------------------------------------------------------
 // Suite 6: Standing rules - no new permissions, version untouched
 // -------------------------------------------------------------------

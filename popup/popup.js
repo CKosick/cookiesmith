@@ -614,8 +614,12 @@ function createCookieCard(cookie) {
 
   btnCopy.addEventListener('click', async (e) => {
     e.stopPropagation();
-    await navigator.clipboard.writeText(cookie.value || '');
-    showToast(`Copied value of "${cookie.name}"`);
+    try {
+      await navigator.clipboard.writeText(cookie.value || '');
+      showToast(`Copied value of "${cookie.name}"`);
+    } catch (err) {
+      showToast(`Copy failed: ${err.message}`, true);
+    }
   });
 
   btnDel.addEventListener('click', async (e) => {
