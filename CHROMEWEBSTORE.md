@@ -40,6 +40,7 @@ CookieSmith does not collect, log, store, or transmit your personal data, browsi
 
 SUPPORT & SOURCE CODE
 CookieSmith is fully open source. You can inspect the source code, verify network silence in Chrome DevTools, report issues, and submit feedback via GitHub.
+CookieSmith is built and published by Cliff Kosick and is not affiliated with any other extension using a similar name.
 
 **Category** [REQUIRED]
 Developer Tools
